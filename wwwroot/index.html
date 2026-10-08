@@ -3,26 +3,44 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Karenderya Orders</title>
+  <title>Karenderya Menu</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; }
-    form { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0; }
-    input, button { font: inherit; padding: 8px; }
-    li { padding: 6px 0; }
-    #message { color: #a32a2a; }
+    body { font-family: system-ui, sans-serif; max-width: 780px; margin: 40px auto; padding: 0 16px; }
+    button, input { font: inherit; padding: 8px; }
+    button { cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+    .actions button { margin-right: 6px; }
+    dialog { border: 1px solid #ccc; border-radius: 8px; width: min(400px, 90%); }
+    dialog::backdrop { background: #0005; }
+    dialog label { display: block; margin: 12px 0; }
+    dialog input { width: 95%; }
+    #message { color: #234e36; }
   </style>
   <script src="/app.js" defer></script>
 </head>
 <body>
   <h1>Karenderya Menu</h1>
-  <p>Starting version: list and add food items.</p>
-  <ul id="menu"></ul>
-  <h2>Add food</h2>
-  <form id="food-form">
-    <input id="name" placeholder="Food name" maxlength="100" required>
-    <input id="price" type="number" placeholder="Price" min="0.01" max="100000" step="0.01" required>
-    <button type="submit">Add</button>
-  </form>
+  <button id="add-food" type="button">+ Add food</button>
+  <table>
+    <thead><tr><th>Name</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody id="menu"></tbody>
+  </table>
   <p id="message" role="status"></p>
+  <dialog id="food-dialog">
+    <form id="food-form">
+      <h2 id="form-title">Add food</h2>
+      <label>Name <input id="name" required maxlength="100"></label>
+      <label>Price (₱) <input id="price" type="number" min="0.01" max="100000" step="0.01" required></label>
+      <button type="button" id="close-food">Cancel</button>
+      <button type="submit">Save</button>
+    </form>
+  </dialog>
+  <dialog id="confirm-dialog">
+    <h2>Confirm status change</h2>
+    <p id="confirm-message"></p>
+    <button id="cancel-status" type="button">No</button>
+    <button id="confirm-status" type="button">Yes, proceed</button>
+  </dialog>
 </body>
 </html>

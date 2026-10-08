@@ -1,10 +1,10 @@
 # Karenderya Orders
 
-A small .NET 8 web app for recording karenderya food items and, in later milestones, customer orders.
+A small .NET 8 web application for managing food items, with orders coming in later milestones. Data is stored in a local JSON file.
 
 ## Run
 
-Requires the .NET 8 SDK.
+Requires the .NET 8 SDK. No extra packages or database.
 
 ```bash
 dotnet build KarenderyaOrders.csproj
@@ -15,20 +15,23 @@ Open http://127.0.0.1:5278.
 
 ## Checks
 
-Build the project, open the page, add a food item with a price, refresh, and verify it remains listed.
+1. Add a food item and refresh: the new item should remain.
+2. Edit its name and price; verify they update.
+3. Deactivate it and refresh; it should still appear as Inactive.
+4. Reactivate it; verify it returns to Active.
+5. Try adding another food with the same name; the API should reject it.
 
 ## Assumptions and decisions
 
-- A local JSON file stores the data; no database server or extra packages.
-- This first milestone only lists and adds menu items.
-- The server validates food names and prices and prevents duplicate names.
+- Soft deletion uses an `Active` flag rather than removing menu records.
+- Server validates names, prices, and duplicate names.
+- Existing sample food items have no timestamps because they predate this milestone; new edits receive a modified timestamp.
+- Single-process JSON storage, with no additional libraries.
 
-## Known limitations and deferred features
+## Limitations / not built yet
 
-- Designed for one local app instance, not concurrent servers.
-- No editing, soft deletion, orders, inventory, payment, login, or reports yet.
-- Corrupted JSON requires manual repair.
+Orders, inventory checks, customer tracking, login, payment, and reports are not implemented. JSON storage isn't designed for multiple server instances or recovery from corrupted files.
 
 ## AI use
 
-ChatGPT helped draft the initial code and scope. Subsequent changes and checks will be reviewed and documented as development progresses.
+ChatGPT helped draft the implementation and review scope. Changes are being introduced in separate milestones and need to be checked locally before committing.
