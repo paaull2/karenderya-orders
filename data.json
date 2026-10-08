@@ -1,0 +1,7 @@
+{
+  "nextFoodId": 3,
+  "menu": [
+    { "id": 1, "name": "Adobo", "price": 70 },
+    { "id": 2, "name": "Rice", "price": 15 }
+  ]
+}
