@@ -19,6 +19,10 @@ Visit http://127.0.0.1:5278. The home page opens the cashier. Pages: /cashier/, 
 - **Cashier:** Create orders with a customer name, multiple items and quantities, searchable food selection, and a confirmation modal. The server checks inventory, computes totals, and deducts stock.
 - **Orders:** See past orders and the original name/price of every ordered item; move Ordered → Preparing → Completed, or cancel an Ordered order. Cancellation restores reserved stock exactly once.
 
+## Tests and checks
+
+Run `dotnet build KarenderyaOrders.csproj`, then run `python3 tests/smoke.py` for an isolated API smoke test. The script starts its own temporary app copy and does not change the project's `data.json`. Python 3 and .NET 8 are required. Run the manual browser checks below for UI behavior.
+
 ## Manual checks
 
 1. Build successfully with `dotnet build KarenderyaOrders.csproj`.
@@ -36,7 +40,7 @@ This is a small exercise intended for a single local server instance. JSON persi
 
 ## Known limitations and features left out
 
-No payment collection, refunds, login, access control, reports, audit trail or multi-server support. JSON data is not a production database; concurrent independent server instances and corrupted data are not handled. Browser/endpoint checks are manual at this stage; automated tests and cleanup are a later milestone.
+No payment collection, refunds, login, access control, reports, audit trail or multi-server support. JSON data is not a production database; concurrent independent server instances and corrupted data are not handled. Automated endpoint smoke checks can be run using the Python standard library. Production deployment, concurrent server instances, and recovery from corrupted JSON are outside this exercise.
 
 ## AI use
 

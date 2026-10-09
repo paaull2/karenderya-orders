@@ -21,7 +21,7 @@ string? Check(FoodInput? item) =>
     item is null || string.IsNullOrWhiteSpace(item.Name) || item.Name.Trim().Length > 100
         ? "Food name must be 1–100 characters."
         : item.Price <= 0 || item.Price > 100000 || decimal.Round(item.Price, 2) != item.Price
-            ? "Enter a valid price with up to two decimal places." : null;
+            ? "Enter a valid price with up to two decimal places." : item.Stock < 0 ? "Stock cannot be negative." : null;
 
 app.MapGet("/api/menu", (bool? includeInactive) =>
 {
@@ -40,7 +40,7 @@ app.MapPost("/api/menu", (FoodInput? input) =>
         var now = DateTimeOffset.Now;
         var food = new Food
         {
-            Id = data.NextFoodId++, Name = input!.Name.Trim(), Price = input.Price, Stock = 0,
+            Id = data.NextFoodId++, Name = input!.Name.Trim(), Price = input.Price, Stock = input.Stock,
             CreatedAt = now, ModifiedAt = now
         };
         data.Menu.Add(food);
@@ -206,7 +206,7 @@ class Food
     public DateTimeOffset? CreatedAt { get; set; }
     public DateTimeOffset? ModifiedAt { get; set; }
 }
-record FoodInput(string Name, decimal Price);
+record FoodInput(string Name, decimal Price, int Stock = 0);
 record StatusInput(bool Active);
 record StockInput(int Stock);
 record OrderStatusInput(string Status);
