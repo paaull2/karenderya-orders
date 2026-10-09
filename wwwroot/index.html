@@ -16,6 +16,10 @@
     dialog label { display: block; margin: 12px 0; }
     dialog input { width: 95%; }
     #message { color: #234e36; }
+    .order-row { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
+    .order-row select { min-width: 180px; padding: 8px; }
+    .order-row input { width: 85px; }
+    section { margin-top: 28px; border-top: 1px solid #ddd; padding-top: 16px; }
   </style>
   <script src="/app.js" defer></script>
 </head>
@@ -26,6 +30,16 @@
     <thead><tr><th>Name</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
     <tbody id="menu"></tbody>
   </table>
+  <section>
+    <h2>Create customer order</h2>
+    <form id="order-form">
+      <label>Customer name <input id="customer-name" maxlength="100" required></label>
+      <div id="order-lines"></div>
+      <button id="add-order-line" type="button">+ Add item</button>
+      <p><strong>Total: <span id="order-total">₱0.00</span></strong></p>
+      <button id="save-order" type="submit">Save order</button>
+    </form>
+  </section>
   <p id="message" role="status"></p>
   <dialog id="food-dialog">
     <form id="food-form">

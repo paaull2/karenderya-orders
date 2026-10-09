@@ -1,7 +1,17 @@
 {
   "nextFoodId": 3,
   "menu": [
-    { "id": 1, "name": "Adobo", "price": 70 },
-    { "id": 2, "name": "Rice", "price": 15 }
-  ]
+    {
+      "id": 1,
+      "name": "Adobo",
+      "price": 70
+    },
+    {
+      "id": 2,
+      "name": "Rice",
+      "price": 15
+    }
+  ],
+  "nextOrderId": 1,
+  "orders": []
 }

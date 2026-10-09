@@ -1,6 +1,6 @@
 # Karenderya Orders
 
-A small .NET 8 web application for managing food items, with orders coming in later milestones. Data is stored in a local JSON file.
+A small .NET 8 web application for managing food items, with basic customer order creation. Data is stored in a local JSON file.
 
 ## Run
 
@@ -20,6 +20,9 @@ Open http://127.0.0.1:5278.
 3. Deactivate it and refresh; it should still appear as Inactive.
 4. Reactivate it; verify it returns to Active.
 5. Try adding another food with the same name; the API should reject it.
+6. Create an order for one Adobo and three Rice; total should be ₱115.
+7. Try ordering an inactive food item or duplicate food IDs; the API should reject it.
+8. Edit Adobo's menu price, then check GET /api/orders: the previous order still has its original price.
 
 ## Assumptions and decisions
 
@@ -27,10 +30,12 @@ Open http://127.0.0.1:5278.
 - Server validates names, prices, and duplicate names.
 - Existing sample food items have no timestamps because they predate this milestone; new edits receive a modified timestamp.
 - Single-process JSON storage, with no additional libraries.
+- Orders save the customer's name, timestamp, food name/price snapshots, quantities, and server-calculated total.
+- The customer order form has no stock deduction yet; that belongs to the next milestone.
 
 ## Limitations / not built yet
 
-Orders, inventory checks, customer tracking, login, payment, and reports are not implemented. JSON storage isn't designed for multiple server instances or recovery from corrupted files.
+Inventory checks, stock deduction, order-status management, login, payment, and reports are not implemented. Order history is currently available through GET /api/orders, with a separate history interface planned. JSON storage isn't designed for multiple server instances or recovery from corrupted files.
 
 ## AI use
 

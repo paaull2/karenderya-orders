@@ -82,6 +82,48 @@ app.MapPatch("/api/menu/{id:int}/status", (int id, StatusInput input) =>
     }
 });
 
+app.MapGet("/api/orders", () =>
+{
+    lock (gate) return Results.Ok(Load().Orders.OrderByDescending(x => x.Id).ToList());
+});
+
+app.MapPost("/api/orders", (OrderInput? input) =>
+{
+    if (input is null || string.IsNullOrWhiteSpace(input.CustomerName) ||
+        input.CustomerName.Trim().Length > 100)
+        return Results.BadRequest(new { error = "Customer name must be 1–100 characters." });
+    if (input.Items is not { Count: > 0 })
+        return Results.BadRequest(new { error = "Add at least one food item." });
+    lock (gate)
+    {
+        var data = Load();
+        var lines = new List<OrderLine>();
+        foreach (var selected in input.Items)
+        {
+            if (selected.Quantity < 1)
+                return Results.BadRequest(new { error = "Quantity must be greater than zero." });
+            if (lines.Any(x => x.FoodId == selected.FoodId))
+                return Results.BadRequest(new { error = "Food item selected more than once." });
+            var food = data.Menu.FirstOrDefault(x => x.Id == selected.FoodId && x.Active);
+            if (food is null)
+                return Results.BadRequest(new { error = "A selected food item is unavailable." });
+            lines.Add(new OrderLine(food.Id, food.Name, food.Price, selected.Quantity));
+        }
+        // The browser only submits food IDs and quantities, never prices.
+        decimal total;
+        try { total = lines.Sum(x => checked(x.Price * x.Quantity)); }
+        catch (OverflowException) { return Results.BadRequest(new { error = "Order total is too large." }); }
+        var order = new CustomerOrder
+        {
+            Id = data.NextOrderId++, CustomerName = input.CustomerName.Trim(),
+            CreatedAt = DateTimeOffset.Now, Items = lines, Total = total
+        };
+        data.Orders.Add(order);
+        Save(data);
+        return Results.Created("/api/orders/" + order.Id, order);
+    }
+});
+
 app.Run();
 
 class Food
@@ -95,8 +137,21 @@ class Food
 }
 record FoodInput(string Name, decimal Price);
 record StatusInput(bool Active);
+record OrderInput(string CustomerName, List<SelectedItem> Items);
+record SelectedItem(int FoodId, int Quantity);
+record OrderLine(int FoodId, string Name, decimal Price, int Quantity);
+class CustomerOrder
+{
+    public int Id { get; set; }
+    public string CustomerName { get; set; } = "";
+    public DateTimeOffset CreatedAt { get; set; }
+    public List<OrderLine> Items { get; set; } = [];
+    public decimal Total { get; set; }
+}
 class Store
 {
     public int NextFoodId { get; set; } = 3;
+    public int NextOrderId { get; set; } = 1;
     public List<Food> Menu { get; set; } = [];
+    public List<CustomerOrder> Orders { get; set; } = [];
 }

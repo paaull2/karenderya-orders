@@ -40,6 +40,9 @@ async function loadMenu() {
     row.append(actions);
     table.append(row);
   }
+  // Keep selectable food choices in sync after menu edits.
+  if (!$("order-lines").children.length) addOrderLine();
+  else renderOrderLines();
 }
 function openFood(food = null) {
   $("food-form").reset();
@@ -92,5 +95,82 @@ $("food-form").onsubmit = async event => {
     await loadMenu();
     $("message").textContent = "Food saved.";
   } catch (error) { showError(error); }
+};
+function addOrderLine() {
+  const row = document.createElement("div");
+  row.className = "order-row";
+  const select = document.createElement("select");
+  select.setAttribute("aria-label", "Food item");
+  const quantity = document.createElement("input");
+  quantity.type = "number";
+  quantity.min = "1";
+  quantity.step = "1";
+  quantity.value = "1";
+  quantity.setAttribute("aria-label", "Quantity");
+  select.onchange = updateTotal;
+  quantity.oninput = updateTotal;
+  row.append(select, quantity, makeButton("Remove", () => { row.remove(); updateTotal(); }));
+  $("order-lines").append(row);
+  fillChoices(select);
+  updateTotal();
+}
+function fillChoices(select) {
+  const selected = select.value;
+  select.replaceChildren();
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = "Choose food";
+  select.append(placeholder);
+  for (const food of foods.filter(x => x.active)) {
+    const option = document.createElement("option");
+    option.value = food.id;
+    option.textContent = food.name + " — ₱" + Number(food.price).toFixed(2);
+    select.append(option);
+  }
+  select.value = selected && [...select.options].some(x => x.value === selected) ? selected : "";
+}
+function renderOrderLines() {
+  document.querySelectorAll("#order-lines select").forEach(fillChoices);
+  updateTotal();
+}
+function orderItems() {
+  return [...document.querySelectorAll("#order-lines .order-row")].map(row => ({
+    foodId: Number(row.querySelector("select").value),
+    quantity: Number(row.querySelector("input").value)
+  }));
+}
+function updateTotal() {
+  const total = orderItems().reduce((sum, line) => {
+    const food = foods.find(x => x.id === line.foodId && x.active);
+    return sum + (food && Number.isInteger(line.quantity) && line.quantity > 0 ? Number(food.price) * line.quantity : 0);
+  }, 0);
+  $("order-total").textContent = "₱" + total.toFixed(2);
+}
+$("add-order-line").onclick = addOrderLine;
+let savingOrder = false;
+$("order-form").onsubmit = async event => {
+  event.preventDefault();
+  if (savingOrder) return;
+  const items = orderItems();
+  if (!items.length || items.some(x => !x.foodId || !Number.isInteger(x.quantity) || x.quantity < 1)) {
+    $("message").textContent = "Choose food and enter a valid quantity for each item.";
+    return;
+  }
+  if (new Set(items.map(x => x.foodId)).size !== items.length) {
+    $("message").textContent = "The same food item was selected twice.";
+    return;
+  }
+  savingOrder = true;
+  $("save-order").disabled = true;
+  try {
+    const order = await request("/api/orders", "POST", {
+      customerName: $("customer-name").value.trim(), items
+    });
+    $("order-form").reset();
+    $("order-lines").replaceChildren();
+    addOrderLine();
+    $("message").textContent = "Order #" + order.id + " saved. Total: ₱" + Number(order.total).toFixed(2);
+  } catch (error) { showError(error); }
+  finally { savingOrder = false; $("save-order").disabled = false; }
 };
 loadMenu().catch(showError);
