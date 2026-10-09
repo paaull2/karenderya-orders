@@ -1,47 +1,43 @@
 # Karenderya Orders
 
-A small .NET 8 web application for managing food items, with basic customer order creation. Data is stored in a local JSON file.
+A small cashier-side order management application using ASP.NET Core Minimal API (.NET 8), vanilla HTML/CSS/JavaScript and a local JSON file. No database server or additional packages.
 
 ## Run
 
-Requires the .NET 8 SDK. No extra packages or database.
+Install the .NET 8 SDK, then from the project root:
 
 ```bash
 dotnet build KarenderyaOrders.csproj
 dotnet run --project KarenderyaOrders.csproj --launch-profile KarenderyaOrders
 ```
 
-Open http://127.0.0.1:5278.
+Visit http://127.0.0.1:5278. The home page opens the cashier. Pages: /cashier/, /menu/ and /orders/.
 
-## Checks
+## Current features
 
-1. Add a food item and refresh: the new item should remain.
-2. Edit its name and price; verify they update.
-3. Deactivate it and refresh; it should still appear as Inactive.
-4. Reactivate it; verify it returns to Active.
-5. Try adding another food with the same name; the API should reject it.
-6. Create an order for one Adobo and three Rice; total should be ₱115.
-7. Try ordering an inactive food item or duplicate food IDs; the API should reject it.
-8. Edit Adobo's menu price, then check GET /api/orders: the previous order still has its original price.
-9. Adjust Adobo stock to 2. Ordering 3 Adobo must fail without saving an order or decreasing stock.
-10. Order 1 Adobo, then refresh: the stock should decrease to 1 and stay there.
-11. Set Rice stock to 0; it should disappear from the order choices. Restore stock using Adjust stock.
+- **Menu:** Create and edit food, set prices, activate/deactivate items, and adjust available stock.
+- **Cashier:** Create orders with a customer name, multiple items and quantities, searchable food selection, and a confirmation modal. The server checks inventory, computes totals, and deducts stock.
+- **Orders:** See past orders and the original name/price of every ordered item; move Ordered → Preparing → Completed, or cancel an Ordered order. Cancellation restores reserved stock exactly once.
 
-## Assumptions and decisions
+## Manual checks
 
-- Soft deletion uses an `Active` flag rather than removing menu records.
-- Server validates names, prices, and duplicate names.
-- Existing sample food items have no timestamps because they predate this milestone; new edits receive a modified timestamp.
-- Single-process JSON storage, with no additional libraries.
-- Orders save the customer's name, timestamp, food name/price snapshots, quantities, and server-calculated total.
-- New food items start with zero stock; stock can be adjusted separately from name and price.
-- The supplied sample food items have demo stock quantities.
-- Each order checks available stock under an in-process lock and deducts inventory only after validating the entire order.
+1. Build successfully with `dotnet build KarenderyaOrders.csproj`.
+2. Add and edit a food; check duplicate-name and invalid-price rejection.
+3. Set Adobo stock to 2. Ordering 3 must fail without changing stock or creating an order.
+4. Order 1 Adobo and confirm available stock is now 1; refresh and verify persistence.
+5. Change the menu price; verify the previous order retains the original price.
+6. Move an order from Ordered → Preparing → Completed and verify it cannot go backward.
+7. Create another Ordered order and cancel it. Verify inventory is restored once and the order remains visible with status Cancelled.
+8. Confirm the status filter, food picker, loading overlay and modals work.
 
-## Limitations / not built yet
+## Assumptions and design decisions
 
-Order-status management, login, payment, and reports are not implemented. Order history is currently available through GET /api/orders, with a separate history interface planned. JSON storage isn't designed for multiple server instances or recovery from corrupted files.
+This is a small exercise intended for a single local server instance. JSON persistence keeps setup minimal; a lock serializes reads and writes within one process. The server, not the browser, determines totals and checks stock. Ordering decrements inventory immediately. Order lines keep their original names and prices. Deactivated food remains in historical orders. The status progression is intentionally limited.
+
+## Known limitations and features left out
+
+No payment collection, refunds, login, access control, reports, audit trail or multi-server support. JSON data is not a production database; concurrent independent server instances and corrupted data are not handled. Browser/endpoint checks are manual at this stage; automated tests and cleanup are a later milestone.
 
 ## AI use
 
-ChatGPT helped draft the implementation and review scope. Changes are being introduced in separate milestones and need to be checked locally before committing.
+ChatGPT helped implement the code in incremental milestones and review the structure and edge cases. The author checks behavior locally before Git commits and remains responsible for correctness. Build and browser test results should be verified rather than assumed.

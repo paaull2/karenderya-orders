@@ -2,6 +2,7 @@ const $ = id => document.getElementById(id);
 let foods = [];
 let editingId = null;
 let stockId = null;
+let orders = [];
 
 async function request(path, method = "GET", data) {
   const response = await fetch(path, {
@@ -194,8 +195,55 @@ $("order-form").onsubmit = async event => {
     $("order-form").reset();
     $("order-lines").replaceChildren();
     addOrderLine();
+    await loadOrders();
     $("message").textContent = "Order #" + order.id + " saved. Total: ₱" + Number(order.total).toFixed(2);
   } catch (error) { showError(error); }
   finally { savingOrder = false; $("save-order").disabled = false; }
 };
+async function loadOrders() {
+  orders = await request("/api/orders");
+  renderOrders();
+}
+function renderOrders() {
+  const body = $("orders");
+  body.replaceChildren();
+  const filter = $("order-filter").value;
+  for (const order of orders.filter(x => !filter || (x.status || "Ordered") === filter)) {
+    const row = document.createElement("tr");
+    const items = order.items.map(x => x.quantity + "× " + x.name + " @ ₱" + Number(x.price).toFixed(2)).join(", ");
+    const status = order.status || "Ordered";
+    const next = status === "Ordered" ? "Preparing" : status === "Preparing" ? "Completed" : null;
+    for (const text of [
+      "#" + order.id, order.customerName, items, "₱" + Number(order.total).toFixed(2),
+      new Date(order.createdAt).toLocaleString("en-PH"), status
+    ]) {
+      const cell = document.createElement("td");
+      cell.textContent = text;
+      row.append(cell);
+    }
+    const action = document.createElement("td");
+    if (next) action.append(makeButton("Mark " + next, () => advanceOrder(order, next)));
+    row.append(action);
+    body.append(row);
+  }
+  if (!body.children.length) {
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = 7;
+    cell.textContent = "No orders found.";
+    row.append(cell);
+    body.append(row);
+  }
+}
+async function advanceOrder(order, next) {
+  if (!await askConfirmation("Change order #" + order.id + " to " + next + "?")) return;
+  try {
+    await request("/api/orders/" + order.id + "/status", "PATCH", { status: next });
+    await loadOrders();
+    $("message").textContent = "Order #" + order.id + " updated to " + next + ".";
+  } catch (error) { showError(error); }
+}
+$("order-filter").onchange = renderOrders;
+$("refresh-orders").onclick = () => loadOrders().catch(showError);
 loadMenu().catch(showError);
+loadOrders().catch(showError);

@@ -148,6 +148,52 @@ app.MapPost("/api/orders", (OrderInput? input) =>
     }
 });
 
+app.MapPatch("/api/orders/{id:int}/status", (int id, OrderStatusInput? input) =>
+{
+    if (input is null) return Results.BadRequest(new { error = "Status is required." });
+    lock (gate)
+    {
+        var data = Load();
+        var order = data.Orders.FirstOrDefault(x => x.Id == id);
+        if (order is null) return Results.NotFound();
+        if (input.Status == "Cancelled")
+        {
+            if (order.Status != "Ordered")
+                return Results.BadRequest(new { error = "Only Ordered orders can be cancelled." });
+            var restore = new List<(Food Food, int Quantity)>();
+            foreach (var line in order.Items)
+            {
+                var food = data.Menu.FirstOrDefault(x => x.Id == line.FoodId);
+                if (food is null || line.Quantity < 1 || food.Stock > int.MaxValue - line.Quantity)
+                    return Results.BadRequest(new { error = "Cannot restore inventory safely." });
+                restore.Add((food, line.Quantity));
+            }
+            var now = DateTimeOffset.Now;
+            foreach (var item in restore)
+            {
+                item.Food.Stock += item.Quantity;
+                item.Food.ModifiedAt = now;
+            }
+            order.Status = "Cancelled";
+            order.ModifiedAt = now;
+            Save(data);
+            return Results.Ok(order);
+        }
+        var allowed = (order.Status, input.Status) switch
+        {
+            ("Ordered", "Preparing") => true,
+            ("Preparing", "Completed") => true,
+            _ => false
+        };
+        if (!allowed)
+            return Results.BadRequest(new { error = "Only Ordered → Preparing → Completed is allowed." });
+        order.Status = input.Status;
+        order.ModifiedAt = DateTimeOffset.Now;
+        Save(data);
+        return Results.Ok(order);
+    }
+});
+
 app.Run();
 
 class Food
@@ -163,6 +209,7 @@ class Food
 record FoodInput(string Name, decimal Price);
 record StatusInput(bool Active);
 record StockInput(int Stock);
+record OrderStatusInput(string Status);
 record OrderInput(string CustomerName, List<SelectedItem> Items);
 record SelectedItem(int FoodId, int Quantity);
 record OrderLine(int FoodId, string Name, decimal Price, int Quantity);
@@ -171,6 +218,8 @@ class CustomerOrder
     public int Id { get; set; }
     public string CustomerName { get; set; } = "";
     public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? ModifiedAt { get; set; }
+    public string Status { get; set; } = "Ordered";
     public List<OrderLine> Items { get; set; } = [];
     public decimal Total { get; set; }
 }
