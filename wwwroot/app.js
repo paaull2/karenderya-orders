@@ -1,6 +1,7 @@
 const $ = id => document.getElementById(id);
 let foods = [];
 let editingId = null;
+let stockId = null;
 
 async function request(path, method = "GET", data) {
   const response = await fetch(path, {
@@ -26,7 +27,7 @@ async function loadMenu() {
   table.replaceChildren();
   for (const food of foods) {
     const row = document.createElement("tr");
-    for (const text of [food.name, "₱" + Number(food.price).toFixed(2), food.active ? "Active" : "Inactive"]) {
+    for (const text of [food.name, "₱" + Number(food.price).toFixed(2), String(food.stock), food.active ? "Active" : "Inactive"]) {
       const column = document.createElement("td");
       column.textContent = text;
       row.append(column);
@@ -35,6 +36,7 @@ async function loadMenu() {
     actions.className = "actions";
     actions.append(
       makeButton("Edit", () => openFood(food)),
+      makeButton("Adjust stock", () => openStock(food)),
       makeButton(food.active ? "Deactivate" : "Activate", () => changeStatus(food))
     );
     row.append(actions);
@@ -52,6 +54,28 @@ function openFood(food = null) {
   $("form-title").textContent = food ? "Edit food" : "Add food";
   $("food-dialog").showModal();
 }
+function openStock(food) {
+  stockId = food.id;
+  $("stock-title").textContent = "Adjust stock — " + food.name;
+  $("current-stock").textContent = food.stock;
+  $("new-stock").value = food.stock;
+  $("stock-dialog").showModal();
+}
+$("close-stock").onclick = () => $("stock-dialog").close();
+$("stock-form").onsubmit = async event => {
+  event.preventDefault();
+  const stock = Number($("new-stock").value);
+  if (!Number.isSafeInteger(stock) || stock < 0 || stock > 2147483647) {
+    $("message").textContent = "Enter a valid whole-number stock quantity.";
+    return;
+  }
+  try {
+    await request("/api/inventory/" + stockId, "PUT", { stock });
+    $("stock-dialog").close();
+    await loadMenu();
+    $("message").textContent = "Stock updated.";
+  } catch (error) { showError(error); }
+};
 function askConfirmation(text) {
   $("confirm-message").textContent = text;
   return new Promise(resolve => {
@@ -121,10 +145,10 @@ function fillChoices(select) {
   placeholder.value = "";
   placeholder.textContent = "Choose food";
   select.append(placeholder);
-  for (const food of foods.filter(x => x.active)) {
+  for (const food of foods.filter(x => x.active && x.stock > 0)) {
     const option = document.createElement("option");
     option.value = food.id;
-    option.textContent = food.name + " — ₱" + Number(food.price).toFixed(2);
+    option.textContent = food.name + " — ₱" + Number(food.price).toFixed(2) + " (" + food.stock + " left)";
     select.append(option);
   }
   select.value = selected && [...select.options].some(x => x.value === selected) ? selected : "";
@@ -166,6 +190,7 @@ $("order-form").onsubmit = async event => {
     const order = await request("/api/orders", "POST", {
       customerName: $("customer-name").value.trim(), items
     });
+    await loadMenu();
     $("order-form").reset();
     $("order-lines").replaceChildren();
     addOrderLine();

@@ -1,17 +1,40 @@
 {
-  "nextFoodId": 3,
-  "menu": [
+  "NextFoodId": 3,
+  "NextOrderId": 2,
+  "Menu": [
     {
-      "id": 1,
-      "name": "Adobo",
-      "price": 70
+      "Id": 1,
+      "Name": "Adobo",
+      "Price": 70,
+      "Active": true,
+      "Stock": 1,
+      "CreatedAt": null,
+      "ModifiedAt": "2026-10-09T10:15:27.934183+08:00"
     },
     {
-      "id": 2,
-      "name": "Rice",
-      "price": 15
+      "Id": 2,
+      "Name": "Rice",
+      "Price": 15,
+      "Active": true,
+      "Stock": 0,
+      "CreatedAt": null,
+      "ModifiedAt": "2026-10-09T10:15:40.632429+08:00"
     }
   ],
-  "nextOrderId": 1,
-  "orders": []
+  "Orders": [
+    {
+      "Id": 1,
+      "CustomerName": "JP",
+      "CreatedAt": "2026-10-09T10:15:27.934183+08:00",
+      "Items": [
+        {
+          "FoodId": 1,
+          "Name": "Adobo",
+          "Price": 70,
+          "Quantity": 1
+        }
+      ],
+      "Total": 70
+    }
+  ]
 }

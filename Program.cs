@@ -40,7 +40,7 @@ app.MapPost("/api/menu", (FoodInput? input) =>
         var now = DateTimeOffset.Now;
         var food = new Food
         {
-            Id = data.NextFoodId++, Name = input!.Name.Trim(), Price = input.Price,
+            Id = data.NextFoodId++, Name = input!.Name.Trim(), Price = input.Price, Stock = 0,
             CreatedAt = now, ModifiedAt = now
         };
         data.Menu.Add(food);
@@ -82,6 +82,22 @@ app.MapPatch("/api/menu/{id:int}/status", (int id, StatusInput input) =>
     }
 });
 
+app.MapPut("/api/inventory/{id:int}", (int id, StockInput? input) =>
+{
+    if (input is null || input.Stock < 0)
+        return Results.BadRequest(new { error = "Stock must be a nonnegative whole number." });
+    lock (gate)
+    {
+        var data = Load();
+        var food = data.Menu.FirstOrDefault(x => x.Id == id);
+        if (food is null) return Results.NotFound();
+        food.Stock = input.Stock;
+        food.ModifiedAt = DateTimeOffset.Now;
+        Save(data);
+        return Results.Ok(food);
+    }
+});
+
 app.MapGet("/api/orders", () =>
 {
     lock (gate) return Results.Ok(Load().Orders.OrderByDescending(x => x.Id).ToList());
@@ -107,6 +123,8 @@ app.MapPost("/api/orders", (OrderInput? input) =>
             var food = data.Menu.FirstOrDefault(x => x.Id == selected.FoodId && x.Active);
             if (food is null)
                 return Results.BadRequest(new { error = "A selected food item is unavailable." });
+            if (food.Stock < selected.Quantity)
+                return Results.BadRequest(new { error = $"Only {food.Stock} {food.Name} remaining." });
             lines.Add(new OrderLine(food.Id, food.Name, food.Price, selected.Quantity));
         }
         // The browser only submits food IDs and quantities, never prices.
@@ -118,6 +136,12 @@ app.MapPost("/api/orders", (OrderInput? input) =>
             Id = data.NextOrderId++, CustomerName = input.CustomerName.Trim(),
             CreatedAt = DateTimeOffset.Now, Items = lines, Total = total
         };
+        foreach (var line in lines)
+        {
+            var food = data.Menu.First(x => x.Id == line.FoodId);
+            food.Stock -= line.Quantity;
+            food.ModifiedAt = order.CreatedAt;
+        }
         data.Orders.Add(order);
         Save(data);
         return Results.Created("/api/orders/" + order.Id, order);
@@ -132,11 +156,13 @@ class Food
     public string Name { get; set; } = "";
     public decimal Price { get; set; }
     public bool Active { get; set; } = true;
+    public int Stock { get; set; }
     public DateTimeOffset? CreatedAt { get; set; }
     public DateTimeOffset? ModifiedAt { get; set; }
 }
 record FoodInput(string Name, decimal Price);
 record StatusInput(bool Active);
+record StockInput(int Stock);
 record OrderInput(string CustomerName, List<SelectedItem> Items);
 record SelectedItem(int FoodId, int Quantity);
 record OrderLine(int FoodId, string Name, decimal Price, int Quantity);
