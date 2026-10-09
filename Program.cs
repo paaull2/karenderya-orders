@@ -23,9 +23,9 @@ string? Check(FoodInput? item) =>
         : item.Price <= 0 || item.Price > 100000 || decimal.Round(item.Price, 2) != item.Price
             ? "Enter a valid price with up to two decimal places." : null;
 
-app.MapGet("/api/menu", () =>
+app.MapGet("/api/menu", (bool? includeInactive) =>
 {
-    lock (gate) return Results.Ok(Load().Menu);
+    lock (gate) return Results.Ok(Load().Menu.Where(f => includeInactive == true || f.Active).ToArray());
 });
 
 app.MapPost("/api/menu", (FoodInput? input) =>
